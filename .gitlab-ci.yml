@@ -1,0 +1,73 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  GIT_STRATEGY: fetch
+
+build-image:
+  image: docker:stable
+  stage: build
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE" .
+    - docker tag "$CI_REGISTRY_IMAGE" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+before_script:
+  - 'docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY'
+  - 'printf "registry:\n  type: docker\n  url: $CI_REGISTRY\n  user: $CI_REGISTRY_USER\n  namespace: $CI_PROJECT_PATH_SLUG" > forge.yaml'
+  - "kubectl config set-cluster baremetal --server=$K8S_URL --insecure-skip-tls-verify=true"
+  - "kubectl config set-credentials $K8S_USER --token=$K8S_TOKEN"
+  - "kubectl config set-context default-context --cluster=baremetal --user=$K8S_USER"
+  - "kubectl config use-context default-context"
+
+deploy-production:
+  stage: deploy
+  image: gitlab.elnino.tech:4567/docker/forge-deploy:latest
+  environment: production
+  variables:
+    DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  only:
+    - master
+  when: manual
+  script:
+    - "forge --profile production build manifests"
+    - "kubectl apply -f .forge/k8s/$CI_PROJECT_NAME"
+
+deploy-acceptance:master:
+  stage: deploy
+  image: gitlab.elnino.tech:4567/docker/forge-deploy:latest
+  environment: acceptance
+  variables:
+    DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  only:
+    - master
+  script:
+    - "forge --profile acceptance build manifests"
+    - "kubectl apply -f .forge/k8s/$CI_PROJECT_NAME"
+
+deploy-acceptance:
+  stage: deploy
+  image: gitlab.elnino.tech:4567/docker/forge-deploy:latest
+  environment: acceptance
+  variables:
+    DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  except:
+    - master
+  when: manual
+  script:
+    - "forge --profile acceptance build manifests"
+    - "kubectl apply -f .forge/k8s/$CI_PROJECT_NAME"
+
+deploy-dev:
+  stage: deploy
+  image: gitlab.elnino.tech:4567/docker/forge-deploy:latest
+  environment: dev
+  variables:
+    DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  script:
+    - "forge --profile dev build manifests"
+    - "kubectl apply -f .forge/k8s/$CI_PROJECT_NAME"

@@ -1,0 +1,115 @@
+{% set name = '%s' % (service.name) %}
+{% set domains = build.profile.domains %}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{name}}
+  namespace: {{build.profile.namespace}}
+  labels:
+    app: {{name}}
+spec:
+  selector:
+    matchLabels:
+      app: {{name}}
+  strategy:
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    type: RollingUpdate
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: {{name}}
+      name: {{name}}
+    spec:
+      enableServiceLinks: False
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{service.name}}-redis
+                topologyKey: "kubernetes.io/hostname"
+      imagePullSecrets:
+      - name: regcred
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 5
+      containers:
+      - image: {{env.DOCKER_IMAGE}}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /api/health/
+            port: {{service.targetPort}}
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /api/health/
+            port: {{service.targetPort}}
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 1
+          timeoutSeconds: 20
+        ports:
+        - containerPort: {{service.targetPort}}
+        name: {{name}}
+        envFrom:
+        - configMapRef:
+            name: {{name}}-config
+        resources:
+          requests:
+            memory: {{service.memory}}
+            cpu: {{service.cpu}}
+---
+{% if build.profile.namespace == 'production' %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{name}}-rtm
+  namespace: {{build.profile.namespace}}
+  labels:
+    app: {{name}}-rtm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{name}}-rtm
+  strategy:
+    type: Recreate
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: {{name}}-rtm
+      name: {{name}}-rtm
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 5
+      containers:
+      - image: {{env.DOCKER_IMAGE}}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{service.targetPort}}
+        name: {{name}}-rtm
+        envFrom:
+        - configMapRef:
+            name: {{name}}-config
+        command: ['python3', 'slack_rtm.py']
+        resources:
+          requests:
+            memory: {{service.memory}}
+            cpu: {{service.cpu}}
+{% endif %}

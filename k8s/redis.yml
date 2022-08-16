@@ -1,0 +1,89 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{service.name}}-redis-config
+  namespace: {{build.profile.namespace}}
+data:
+  redis-config: |-
+    maxmemory 128mb
+    maxmemory-policy allkeys-lru
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{service.name}}-redis
+  namespace: {{build.profile.namespace}}
+  labels:
+    app: {{service.name}}-redis
+spec:
+  selector:
+    matchLabels:
+      app: {{service.name}}-redis
+  template:
+    metadata:
+      labels:
+        app: {{service.name}}-redis
+    spec:
+      enableServiceLinks: False
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{service.name}}
+                topologyKey: "kubernetes.io/hostname"
+      volumes:
+      - name: config
+        configMap:
+          name: {{service.name}}-redis-config
+          items:
+          - key: redis-config
+            path: redis.conf
+      containers:
+      - name: redis
+        image: redis
+        imagePullPolicy: IfNotPresent
+        args: ["/usr/local/etc/redis/redis.conf"]
+        resources:
+          requests:
+            memory: 50M
+            cpu: 0.05
+        volumeMounts:
+        - name: config
+          mountPath: /usr/local/etc/redis
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "redis-cli -h $(hostname) ping"
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "redis-cli -h $(hostname) ping"
+          initialDelaySeconds: 20
+          periodSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{service.name}}-redis
+  namespace: {{build.profile.namespace}}
+  labels:
+    app: {{service.name}}-redis
+spec:
+  selector:
+    app: {{service.name}}-redis
+  ports:
+  - port: 6379
+    targetPort: 6379

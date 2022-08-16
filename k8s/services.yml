@@ -1,0 +1,13 @@
+{% set name = '%s' % (service.name) %}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{name}}
+  namespace: {{build.profile.namespace}}
+spec:
+  selector:
+    app: {{name}}
+  ports:
+    - protocol: 'TCP'
+      port: {{service.targetPort}}

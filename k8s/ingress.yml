@@ -1,0 +1,29 @@
+{% set name = '%s' % (service.name) %}
+{% set domains = build.profile.domains %}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{name}}
+  namespace: {{build.profile.namespace}}
+  annotations:
+    certmanager.k8s.io/cluster-issuer: "letsencrypt-production"
+    kubernetes.io/tls-acme: "true"
+spec:
+  tls:
+  - hosts:
+    {% for domain in domains %}
+    - {{domain}}
+    {% endfor %}
+    secretName: {{name}}-tls
+  rules:
+  {% for domain in domains %}
+  - host: {{domain}}
+    http:
+      paths:
+      - backend:
+          serviceName: {{name}}
+          servicePort: {{service.targetPort}}
+  {% endfor %}
+status:
+  loadBalancer: {}
