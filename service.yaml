@@ -1,0 +1,29 @@
+name: {{env.CI_PROJECT_NAME}}
+targetPort: 8000
+memory: 200M
+cpu: 0.1
+
+profiles:
+  production:
+    domains:
+      - {{env.CI_PROJECT_NAME}}.k.elnino-production.com
+      - bot.elnino.tech
+    namespace: production
+    updater_schedule: "*/15 * * * *"
+    crons: True
+  acceptance:
+    domains:
+      - {{env.CI_PROJECT_NAME}}.k.elnino-acceptance.com
+    namespace: acceptance
+    updater_schedule: "0 */2 * * *"
+    crons: False
+  dev:
+    domains:
+      - {{env.CI_PROJECT_NAME}}.k.elnino-dev.com
+    namespace: dev
+    updater_schedule: "0 */3 * * *"
+    crons: False
+
+containers:
+  - dockerfile: Dockerfile
+    context: .
