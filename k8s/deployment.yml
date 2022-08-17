@@ -107,7 +107,6 @@ spec:
         envFrom:
         - configMapRef:
             name: {{name}}-config
-        command: ['python3', 'slack_rtm.py']
         resources:
           requests:
             memory: {{service.memory}}
