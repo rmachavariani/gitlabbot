@@ -5,8 +5,6 @@ from os import environ
 from templates.message import Message
 from templates.parser import *
 
-print(environ.get("SLACK_BOT_TOKEN"))
-
 slack_app = App(
     token=environ.get("SLACK_BOT_TOKEN"),
     signing_secret=environ.get("SLACK_SIGNING_SECRET")
