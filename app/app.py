@@ -1,12 +1,10 @@
 from slack_bolt import App
 from flask import Flask
 from slack_bolt.adapter.flask import SlackRequestHandler
-from dotenv import load_dotenv
 from os import environ
 from templates.message import Message
 from templates.parser import *
 
-load_dotenv()
 slack_app = App(
     token=environ.get("SLACK_BOT_TOKEN"),
     signing_secret=environ.get("SLACK_SIGNING_SECRET")
