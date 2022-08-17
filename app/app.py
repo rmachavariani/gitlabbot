@@ -11,6 +11,7 @@ slack_app = App(
 )
 
 flask_app = Flask(__name__)
+flask_app.url_map.strict_slashes = False
 handler = SlackRequestHandler(slack_app)
 
 
