@@ -23,18 +23,6 @@ spec:
       name: {{name}}
     spec:
       enableServiceLinks: False
-      affinity:
-        podAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                        - {{service.name}}-redis
-                topologyKey: "kubernetes.io/hostname"
       imagePullSecrets:
       - name: regcred
       dnsPolicy: ClusterFirst
@@ -69,46 +57,3 @@ spec:
           requests:
             memory: {{service.memory}}
             cpu: {{service.cpu}}
----
-{% if build.profile.namespace == 'production' %}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{name}}-rtm
-  namespace: {{build.profile.namespace}}
-  labels:
-    app: {{name}}-rtm
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: {{name}}-rtm
-  strategy:
-    type: Recreate
-  minReadySeconds: 10
-  template:
-    metadata:
-      labels:
-        app: {{name}}-rtm
-      name: {{name}}-rtm
-    spec:
-      imagePullSecrets:
-      - name: regcred
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      securityContext: {}
-      terminationGracePeriodSeconds: 5
-      containers:
-      - image: {{env.DOCKER_IMAGE}}
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: {{service.targetPort}}
-        name: {{name}}-rtm
-        envFrom:
-        - configMapRef:
-            name: {{name}}-config
-        resources:
-          requests:
-            memory: {{service.memory}}
-            cpu: {{service.cpu}}
-{% endif %}
