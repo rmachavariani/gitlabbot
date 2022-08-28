@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     entrypoint: 'python'
-    command: '-m flask run --host=0.0.0.0'
+    command: uwsgi --emperor /usr/src/app
     env_file: 
       - .env
     volumes:
