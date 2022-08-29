@@ -24,37 +24,37 @@ def parse_action_into_status():
     action = request.json['object_attributes']['action']
 
     switcher = {
-        "open": lambda: "👀 opened 👀",
-        "close": lambda: "🪦 closed 🪦",
-        "approved": lambda: "👍 approved 👍",
-        "unapproved": lambda: "👎 unapproved 👎",
-        "merge": lambda: "🚀 merged 🚀",
-        "update": lambda: f"🧑‍💻 assigned 🧑‍💻"
+        "open": "👀 opened 👀",
+        "close": "🪦 closed 🪦",
+        "approved": "👍 approved 👍",
+        "unapproved": "👎 unapproved 👎",
+        "merge": "🚀 merged 🚀",
+        "update": "🧑‍💻 assigned 🧑‍💻"
     }
-    func = switcher.get(action, lambda: 'Invalid')
-    return func()
+    result = switcher.get(action, 'Invalid')
+    return result
 
 
 def parse_action_into_message():
     action = request.json['object_attributes']['action']
 
     switcher = {
-        "open": lambda: "opened",
-        "close": lambda: "closed",
-        "approved": lambda: "approved",
-        "unapproved": lambda: "unapproved",
-        "merge": lambda: "merged",
-        "update": lambda: f"assigned {parse_assignee()} to"
+        "open": "opened",
+        "close": "closed",
+        "approved": "approved",
+        "unapproved": "unapproved",
+        "merge": "merged",
+        "update": f"assigned {parse_assignee()} to"
     }
-    func = switcher.get(action, lambda: 'Invalid')
-    return func()
+    result = switcher.get(action, 'Invalid')
+    return result
 
 
 def parse_action_into_assignee():
     action = request.json['object_attributes']['action']
 
     switcher = {
-        "update": lambda: f"{parse_assignee()}"
+        "update": f"{parse_assignee()}"
     }
-    func = switcher.get(action, lambda: 'None')
-    return func()
+    result = switcher.get(action, 'None')
+    return result
