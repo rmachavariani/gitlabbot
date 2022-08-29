@@ -4,6 +4,9 @@ from slack_bolt.adapter.flask import SlackRequestHandler
 from os import environ
 from app.message import Message
 from app.parser import *
+from dotenv import load_dotenv
+
+load_dotenv()
 
 slack_app = App(
     token=environ.get("SLACK_BOT_TOKEN"),
@@ -108,3 +111,6 @@ def send_message():
 @flask_app.route("/api/health")
 def health():
     return "OK"
+
+if __name__ == "__main__":
+    flask_app.run(host="0.0.0.0", debug=True)
