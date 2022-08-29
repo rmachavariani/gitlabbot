@@ -1,5 +1,4 @@
-from flask import request
-from .parser import *
+from app.parser import *
 from dataclasses import dataclass
 
 

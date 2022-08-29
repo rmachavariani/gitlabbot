@@ -1,12 +1,12 @@
-version: '3.7'
+version: '3.8'
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: 'python'
-    command: uwsgi --emperor /usr/src/app
-    env_file: 
+    ports:
+      - "5000:80"
+    env_file:
       - .env
     volumes:
-      - ./:/usr/src/app
+      - .:/magentologybot

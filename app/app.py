@@ -2,8 +2,8 @@ from slack_bolt import App
 from flask import Flask
 from slack_bolt.adapter.flask import SlackRequestHandler
 from os import environ
-from templates.message import Message
-from templates.parser import *
+from app.message import Message
+from app.parser import *
 
 slack_app = App(
     token=environ.get("SLACK_BOT_TOKEN"),
