@@ -22,7 +22,7 @@ class Message:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"@{self.username} has created a new merge request: <{self.mr_url}|{self.mr_iid}: {self.mr_title}>"
+                    "text": f"@{self.username} has created a new merge request: <{self.mr_url}|{self.mr_iid}>: {self.mr_title}"
                             f"\n \n`{self.source}` → `{self.target}`"
                 }
             },

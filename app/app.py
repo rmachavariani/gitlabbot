@@ -108,9 +108,11 @@ def send_message():
     bot = MagentologyBot()
     return bot.send_message()
 
+
 @flask_app.route("/api/health")
 def health():
     return "OK"
+
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", debug=True)
