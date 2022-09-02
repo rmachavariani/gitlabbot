@@ -5,15 +5,16 @@ from dataclasses import dataclass
 @dataclass
 class Message:
 
-    def __init__(self):
+    def __init__(self, mr_object, update_type):
         self.username = request.json['user']['username']
-        self.mr_url = request.json['object_attributes']['url']
-        self.mr_iid = request.json['object_attributes']['iid']
-        self.mr_title = request.json['object_attributes']['title']
-        self.source = request.json['object_attributes']['source_branch']
-        self.target = request.json['object_attributes']['target_branch']
-        self.target_url = request.json['object_attributes']['target']['web_url']
-        self.target_name = request.json['object_attributes']['target']['name']
+        self.mr_url = mr_object['url']
+        self.mr_iid = mr_object['iid']
+        self.mr_title = mr_object['title']
+        self.source = mr_object['source_branch']
+        self.target = mr_object['target_branch']
+        self.target_url = mr_object['target']['web_url']
+        self.target_name = mr_object['target']['name']
+        self.update_type = update_type
 
     @property
     def __open__(self):
@@ -22,8 +23,14 @@ class Message:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"@{self.username} has created a new merge request: <{self.mr_url}|{self.mr_iid}>: {self.mr_title}"
-                            f"\n \n`{self.source}` → `{self.target}`"
+                    "text": f"@{self.username} has created a new merge request: <{self.mr_url}|!{self.mr_iid}>: {self.mr_title}"
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"`{self.source}` → `{self.target}`"
                 }
             },
             {
@@ -46,7 +53,7 @@ class Message:
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Assignee:*\nNone"
+                        "text": f"*Assignees:*\nNone"
                     }
                 ]
             }
@@ -59,7 +66,6 @@ class Message:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"@{self.username} has {parse_action_into_message()} this merge request"
+                    "text": f"@{self.username} has {parse_action_into_message(self.update_type)} this merge request"
                 }
-
         }]

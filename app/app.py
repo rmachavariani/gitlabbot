@@ -1,5 +1,5 @@
 from slack_bolt import App
-from flask import Flask
+from flask import Flask, request
 from slack_bolt.adapter.flask import SlackRequestHandler
 from os import environ
 from app.message import Message
@@ -19,22 +19,30 @@ handler = SlackRequestHandler(slack_app)
 
 
 class MagentologyBot:
-    def __init__(self):
+    def __init__(self, mr_request):
         self.channel = environ.get('CHANNEL')
         self.client = slack_app.client
-        self.mr_id = request.json['object_attributes']['id']
+        self.mr_attributes = mr_request['object_attributes']
+        self.assignees = get_assignees()
         self.thread_start = {}
         self.unfurl_links = False
         self.metadata = {}
         self.message = []
         self.text = ''
+        self.update_type = ''
 
     def send_message(self):
         self.set_metadata()
+
         if self.metadata['event_type'] == 'mr_updated':
-            self.set_message('__update__')
             self.set_thread_start()
+            if self.mr_attributes['action'] == 'update':
+                self.which_update_action()
+                if len(self.update_type) == 0:
+                    return 'Do not send anything'
+
             self.send_thread_start_update()
+            self.set_message('__update__')
             return self.client.chat_postMessage(channel=self.channel,
                                                 blocks=self.message,
                                                 metadata=self.metadata,
@@ -50,11 +58,12 @@ class MagentologyBot:
                                                 text=self.text)
 
     def send_thread_start_update(self):
-        custom_blocks = get_blocks_to_change(self.thread_start)
+        custom_blocks = get_blocks_to_change(self.thread_start, self.update_type)
         return self.client.chat_update(channel=self.channel,
                                        ts=self.thread_start['ts'],
                                        blocks=custom_blocks,
-                                       text='')
+                                       metadata=self.thread_start['metadata'],
+                                       text=self.text)
 
     def get_message_history(self):
         history = self.client.conversations_history(channel=self.channel,
@@ -63,37 +72,49 @@ class MagentologyBot:
         return history['messages']
 
     def set_message(self, message_type):
-        message = Message()
+        message = Message(self.mr_attributes, self.update_type)
         self.message = getattr(message, message_type)
 
     def set_thread_start(self):
         for message in self.get_message_history():
             try:
                 if message['metadata']['event_type'] == 'mr_created' and message['metadata']['event_payload'][
-                    'mr_id'] == self.mr_id:
+                    'mr_id'] == self.mr_attributes['id']:
                     self.thread_start = message
             except KeyError:
                 pass
         return 'Thread start not found'
 
     def set_metadata(self):
-        if request.json['object_attributes']['action'] == 'open':
-            metadata = {'event_type': "mr_created", 'event_payload': {'mr_id': self.mr_id}}
+        if self.mr_attributes['action'] == 'open':
+            metadata = {'event_type': "mr_created", 'event_payload': {'mr_id': self.mr_attributes['id'],
+                                                                      'target_branch': self.mr_attributes[
+                                                                          'target_branch'],
+                                                                      'assignees': self.assignees}}
         else:
-            metadata = {'event_type': "mr_updated", 'event_payload': {'mr_id': self.mr_id}}
+            metadata = {'event_type': "mr_updated", 'event_payload': {'mr_id': self.mr_attributes['id']}}
 
         self.metadata = metadata
 
+    def which_update_action(self):
+        if self.thread_start['metadata']['event_payload']['target_branch'] != self.mr_attributes['target_branch']:
+            self.update_type = 'target_change'
+            self.thread_start['metadata']['event_payload']['target_branch'] = self.mr_attributes['target_branch']
+            self.thread_start['blocks'][1]['text'][
+                'text'] = f"`{self.mr_attributes['source_branch']}` → `{self.mr_attributes['target_branch']}`"
+        elif 'oldrev' in request.json['object_attributes']:
+            self.update_type = 'new_commit'
+        elif self.thread_start['metadata']['event_payload']['assignees'] != self.assignees:
+            self.update_type = 'assignee_change'
+            self.thread_start['metadata']['event_payload']['assignees'] = self.assignees
+            self.thread_start['blocks'][3]['fields'][3]['text'] = f"*Assignees:*\n{','.join(self.assignees)}"
 
-def get_blocks_to_change(target_message):
+
+def get_blocks_to_change(target_message, update_type):
     blocks = target_message['blocks']
-    blocks[2]['fields'][2]['text'] = f"*Last Update:*\n{parse_date()}"
-    if request.json['object_attributes']['action'] == 'update':
-        blocks[2]['fields'][3]['text'] = f"*Assignee:*\n{parse_action_into_assignee()}"
-        if parse_action_into_assignee() != "None":
-            blocks[2]['fields'][1]['text'] = f"*Status:*\n{parse_action_into_status()}"
-    else:
-        blocks[2]['fields'][1]['text'] = f"*Status:*\n{parse_action_into_status()}"
+    blocks[3]['fields'][2]['text'] = f"*Last Update:*\n{parse_date()}"
+    if request.json['object_attributes']['action'] != 'update':
+        blocks[3]['fields'][1]['text'] = f"*Status:*\n{parse_action_into_status()}"
 
     return blocks
 
@@ -105,7 +126,7 @@ def slack_events():
 
 @flask_app.route("/gitlab", methods=["POST"])
 def send_message():
-    bot = MagentologyBot()
+    bot = MagentologyBot(request.json)
     return bot.send_message()
 
 
@@ -113,6 +134,3 @@ def send_message():
 def health():
     return "OK"
 
-
-if __name__ == "__main__":
-    flask_app.run(host="0.0.0.0", debug=True)
