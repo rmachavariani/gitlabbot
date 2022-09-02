@@ -1,8 +1,6 @@
 from flask import request
 from dateutil import parser
 
-mr_attributes = request.json['object_attributes']
-
 
 def parse_assignee():
     current_assignee = 'None'
@@ -18,12 +16,12 @@ def parse_assignee():
 
 
 def parse_date():
-    date = mr_attributes['updated_at']
+    date = request.json['object_attributes']['updated_at']
     return parser.parse(date).strftime("%-d %b %H:%M")
 
 
 def parse_action_into_status():
-    action = mr_attributes['action']
+    action = request.json['object_attributes']['action']
 
     switcher = {
         "open": "👀 opened 👀",
@@ -38,7 +36,7 @@ def parse_action_into_status():
 
 
 def parse_action_into_message(update_type):
-    action = mr_attributes['action']
+    action = request.json['object_attributes']['action']
 
     switcher = {
         "open": "opened",
@@ -53,7 +51,7 @@ def parse_action_into_message(update_type):
 
 
 def parse_action_into_assignee():
-    action = mr_attributes['action']
+    action = request.json['object_attributes']['action']
 
     switcher = {
         "update": f"{parse_assignee()}"
@@ -79,7 +77,7 @@ def get_assignees():
 def get_update_message(update_type):
     switcher = {
         "target_change": "has changed the target branch of",
-        "new_commit": f"added a new commit <{mr_attributes['last_commit']['url']}|{mr_attributes['last_commit']['id'][:8]}> to",
+        "new_commit": f"added a new commit <{request.json['object_attributes']['last_commit']['url']}|{request.json['object_attributes']['last_commit']['id'][:8]}> to",
         "assignee_change": f"assigned {','.join(get_assignees())} to"
     }
 
