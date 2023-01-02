@@ -50,6 +50,9 @@ class MagentologyBot:
                                                 unfurl_links=self.unfurl_links,
                                                 text=self.text)
         elif self.metadata['event_type'] == 'mr_created':
+            if self.is_draft_mr():
+                return 'Do not send anything'
+
             self.set_message('__open__')
             return self.client.chat_postMessage(channel=self.channel,
                                                 blocks=self.message,
@@ -109,6 +112,10 @@ class MagentologyBot:
             self.thread_start['metadata']['event_payload']['assignees'] = self.assignees
             self.thread_start['blocks'][3]['fields'][3]['text'] = f"*Assignees:*\n{','.join(self.assignees)}"
 
+    def is_draft_mr(self):
+        draft_substr = ["WIP", "Draft"]
+        if any(substr in self.mr_attributes['title'] for substr in draft_substr):
+            return True
 
 def get_blocks_to_change(target_message, update_type):
     blocks = target_message['blocks']
