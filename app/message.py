@@ -66,6 +66,6 @@ class Message:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"@{self.username} has {parse_action_into_message(self.update_type)} this merge request"
+                    "text": f"{self.username} has {parse_action_into_message(self.update_type)} this merge request"
                 }
         }]
