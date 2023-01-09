@@ -1,6 +1,6 @@
 from flask import request
 from dateutil import parser
-
+from app import slack_app, channel
 
 def parse_assignee():
     current_assignee = 'None'
@@ -78,8 +78,25 @@ def get_update_message(update_type):
     switcher = {
         "target_change": "has changed the target branch of",
         "new_commit": f"added a new commit <{request.json['object_attributes']['last_commit']['url']}|{request.json['object_attributes']['last_commit']['id'][:8]}> to",
-        "assignee_change": f"assigned {','.join(get_assignees())} to"
+        "assignee_change": "assigned " + ','.join(map(str, get_assignees())) + " to"
     }
 
     result = switcher.get(update_type, 'None')
     return result
+
+
+def get_thread_start():
+    for message in get_message_history():
+        try:
+            if message['metadata']['event_type'] == 'mr_created' and message['metadata']['event_payload'][
+                'mr_id'] == request.json['object_attributes']['id']:
+                return message
+        except KeyError:
+            pass
+    return 'Thread start not found'
+
+def get_message_history():
+  history = slack_app.client.conversations_history(channel=channel,
+                                              limit=100,
+                                              include_all_metadata=True)
+  return history['messages']
