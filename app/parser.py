@@ -93,7 +93,7 @@ def get_thread_start():
                 return message
         except KeyError:
             pass
-    return 'Thread start not found'
+    return None
 
 def get_message_history():
   history = slack_app.client.conversations_history(channel=channel,

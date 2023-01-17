@@ -12,6 +12,9 @@ def send_new_msg(request):
 
 def send_upd_msg(request):
     history_thread = parser.get_thread_start()
+    if history_thread == None:
+        return "Thread not found"
+
     thread = Thread(history_thread)
     message = UpdateMessage(request)
     slack_app.client.chat_postMessage(channel=channel,
