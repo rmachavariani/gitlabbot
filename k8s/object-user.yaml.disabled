@@ -1,9 +1,0 @@
-apiVersion: ceph.rook.io/v1
-kind: CephObjectStoreUser
-metadata:
-  name: featurebot
-  namespace: rook-ceph
-spec:
-  store: object-store
-  displayName: "featurebot"
-
